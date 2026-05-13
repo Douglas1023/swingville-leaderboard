@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TrackMan Tournament Dashboard',
+  title: 'Swingville Golf Tournament Dashboard',
   description: 'Live tournament leaderboard',
 };
 
