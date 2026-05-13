@@ -159,33 +159,36 @@ html, body {
     gap: 8px;
   }
 
-  /* Logo + course info + sponsor all in one row */
+  /* Row 1 left: logo + course info */
   .header-left {
     flex: 1;
     gap: 10px;
     min-width: 0;
+    order: 1;
   }
   .header-left img { height: 52px !important; }
   .header-left .divider { display: none; }
 
-  /* Sponsor sits inline to the right of course text */
+  /* Row 1 right: refresh button only */
+  .header-right { gap: 8px; order: 2; flex-shrink: 0; }
+  .header-refresh-info { display: none; }
+  .header-live-pulse { display: none; }
+
+  /* Row 2: sponsor — full width, right-aligned (appears below refresh button) */
   .header-sponsor {
     position: static;
     transform: none;
+    order: 3;
+    width: 100%;
     flex-direction: row;
+    justify-content: flex-end;
     align-items: center;
     gap: 8px;
-    border-left: 1px solid var(--border);
-    padding-left: 10px;
-    flex-shrink: 0;
+    padding-top: 6px;
+    border-top: 1px solid rgba(2,61,30,0.12);
   }
-  .header-sponsor-label { display: none; }
-  .header-sponsor img { height: 28px !important; }
-
-  /* Right: just the refresh button */
-  .header-right { gap: 8px; }
-  .header-refresh-info { display: none; }
-  .header-live-pulse { display: none; }
+  .header-sponsor-label { font-size: 8px !important; }
+  .header-sponsor img { height: 24px !important; }
 
   /* LIVE shown next to Leaderboard title instead */
   .leaderboard-live { display: flex !important; }
