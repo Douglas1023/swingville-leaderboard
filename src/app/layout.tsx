@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Swingville Golf Tournament Dashboard',
     description: 'Live tournament leaderboard',
-    images: [{ url: '/swingville-logo.png' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
 };
 
