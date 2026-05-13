@@ -1,20 +1,3 @@
-/**
- * trackman.ts
- * 
- * Trackman is a React SPA — data is loaded via their internal REST API, not HTML.
- * 
- * SETUP STEPS:
- * 1. Open your tournament URL in Chrome
- * 2. Open DevTools (F12) → Network tab → filter by "Fetch/XHR"
- * 3. Refresh the page and look for API calls (usually to api.trackmangolf.com or similar)
- * 4. Copy the exact API endpoint URLs and paste them into TRACKMAN_API_BASE in .env.local
- * 5. Check if there's an Authorization header — if so, the session may require cookies
- * 
- * The scraper below tries to:
- * A) Call Trackman's internal API directly (fastest, most reliable)
- * B) Fall back to Puppeteer-style fetch with cookie forwarding if needed
- */
-
 export interface Player {
   rank: number;
   name: string;
@@ -72,123 +55,169 @@ export interface TournamentData {
   error?: string;
 }
 
-const FACILITY_ID = process.env.TRACKMAN_FACILITY_ID || 
-  'RmFjaWxpdHkKZDY2NWM1MGVmLTQ4MWQtNGIxYy04OTcwLWE2M2EwNTAyNDczMA==';
-
-const TOURNAMENT_ID = process.env.TRACKMAN_TOURNAMENT_ID || 
+const TOURNAMENT_ID = process.env.TRACKMAN_TOURNAMENT_ID ||
   'TXVsdGlSb3VuZFRvdXJuYW1lbnQKZGQ1MmNlNGMzLTc3NGQtNDljYS1hNGFiLWVmNWQ2ODM2YmE1ODpQdWJsaXNoZWQ=';
 
-// Common headers to mimic a real browser
+const GRAPHQL_URL = 'https://api.trackmangolf.com/graphql';
+
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Accept': 'application/json, text/plain, */*',
+  'Accept': 'application/json, */*',
   'Accept-Language': 'en-US,en;q=0.9',
-  'Referer': `https://portal.trackmangolf.com/facility/${FACILITY_ID}/tournaments/${TOURNAMENT_ID}/leaderboards`,
+  'Content-Type': 'application/json',
   'Origin': 'https://portal.trackmangolf.com',
+  'Referer': 'https://portal.trackmangolf.com/',
 };
 
-/**
- * Attempt to call Trackman's internal API directly.
- * These endpoints were found by inspecting network traffic on the portal.
- * They may change — if this breaks, re-inspect the Network tab.
- */
-async function fetchFromTrackmanAPI(leaderboardType: string): Promise<unknown> {
-  // Try common Trackman API patterns
-  const apiCandidates = [
-    // Pattern 1: REST API with tournament ID in path
-    `https://api.trackmangolf.com/v1/tournaments/${TOURNAMENT_ID}/leaderboard?type=${leaderboardType}`,
-    // Pattern 2: Facility-scoped
-    `https://api.trackmangolf.com/v1/facilities/${FACILITY_ID}/tournaments/${TOURNAMENT_ID}/leaderboard?type=${leaderboardType}`,
-    // Pattern 3: Portal API  
-    `https://portal.trackmangolf.com/api/tournaments/${TOURNAMENT_ID}/leaderboard?type=${leaderboardType}`,
-    // Pattern 4: GraphQL (some Trackman versions use this)
-    `https://api.trackmangolf.com/graphql`,
-  ];
-
-  for (const url of apiCandidates) {
-    try {
-      const res = await fetch(url, {
-        headers: BROWSER_HEADERS,
-        next: { revalidate: 30 },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        console.log(`[Trackman] API hit: ${url}`);
-        return data;
+const GET_ROUNDS_QUERY = `
+query getLeaderboardTournament($tournamentId: ID!) {
+  node(id: $tournamentId) {
+    ... on CourseTournament {
+      rounds {
+        id
+        roundNumber
+        roundState
+        course { displayName }
+        embeddedGame {
+          closestToPin { holes }
+          longestDrive { holes }
+        }
       }
-    } catch {
-      // Try next candidate
     }
   }
-  return null;
+}`;
+
+const ROUND_LEADERBOARD_QUERY = `
+query roundLeaderboard($roundId: ID!, $publishedTournamentId: ID!, $scoringFormat: GameTypes, $skip: Int, $take: Int, $orderBy: LeaderboardOrderBy) {
+  node(id: $publishedTournamentId) {
+    ... on CourseTournament {
+      tournamentState
+      roundLeaderboard(roundId: $roundId, scoringFormat: $scoringFormat) {
+        records(skip: $skip, take: $take, orderBy: $orderBy) {
+          items {
+            playername
+            playerId
+            hcp
+            score {
+              pos
+              score
+              toPar
+              thru
+              state
+            }
+          }
+          totalCount
+        }
+      }
+    }
+  }
+}`;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function graphqlFetch(feQuery: string, query: string, variables: Record<string, unknown>): Promise<any> {
+  const res = await fetch(`${GRAPHQL_URL}?fe_query=${feQuery}`, {
+    method: 'POST',
+    headers: BROWSER_HEADERS,
+    body: JSON.stringify({ query, variables }),
+    next: { revalidate: 30 },
+  });
+  if (!res.ok) throw new Error(`GraphQL ${feQuery} failed: ${res.status}`);
+  return res.json();
 }
 
-/**
- * Fetch the raw HTML of the Trackman portal page.
- * Since it's a React SPA, the HTML won't have leaderboard data,
- * but we can look for any embedded JSON (window.__STATE__, etc.)
- */
-async function fetchPortalHTML(): Promise<string | null> {
-  const BASE = `https://portal.trackmangolf.com/facility/${FACILITY_ID}/tournaments/${TOURNAMENT_ID}/leaderboards`;
-  
-  const leaderboardTypes = [
-    'coursePlayStrokeNet',
-    'coursePlayStroke', 
-    'closestToPin',
-    'longestDrive',
-  ];
+export async function fetchTournamentData(): Promise<TournamentData> {
+  console.log('[Trackman] Fetching live tournament data...');
 
-  // Just fetch the first one — HTML is same regardless of query param for SPAs
-  const url = `${BASE}?leaderboardType=${leaderboardTypes[0]}`;
-  
   try {
-    const res = await fetch(url, {
-      headers: {
-        ...BROWSER_HEADERS,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-      next: { revalidate: 30 },
+    // Step 1: get round IDs from the tournament
+    const tournamentResult = await graphqlFetch(
+      'getLeaderboardTournament',
+      GET_ROUNDS_QUERY,
+      { tournamentId: TOURNAMENT_ID }
+    );
+
+    const rounds = tournamentResult?.data?.node?.rounds ?? [];
+    if (!rounds.length) throw new Error('No rounds returned for tournament');
+
+    // Prefer an in-progress round; fall back to the latest
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const activeRound = rounds.find((r: any) => r.roundState === 'STARTED') ?? rounds[rounds.length - 1];
+    const roundId: string = activeRound.id;
+    const courseName: string = activeRound.course?.displayName ?? 'Tournament';
+
+    const baseVars = {
+      roundId,
+      publishedTournamentId: TOURNAMENT_ID,
+      skip: 0,
+      take: 300,
+      orderBy: 'POS',
+    };
+
+    // Step 2: fetch NET and GROSS leaderboards in parallel
+    const [netResult, grossResult] = await Promise.all([
+      graphqlFetch('roundLeaderboard', ROUND_LEADERBOARD_QUERY, { ...baseVars, scoringFormat: 'STROKE_NET' }),
+      graphqlFetch('roundLeaderboard', ROUND_LEADERBOARD_QUERY, { ...baseVars, scoringFormat: 'STROKE' }),
+    ]);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const netItems: any[] = netResult?.data?.node?.roundLeaderboard?.records?.items ?? [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const grossItems: any[] = grossResult?.data?.node?.roundLeaderboard?.records?.items ?? [];
+
+    // Build gross lookup by playerId for merging
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const grossById = new Map<string, any>(grossItems.map((g) => [g.playerId, g]));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const netById = new Map<string, any>(netItems.map((n) => [n.playerId, n]));
+
+    // NET leaderboard ordered by net position
+    const netLeaderboard: Player[] = netItems.map((item, i) => {
+      const g = grossById.get(item.playerId);
+      return {
+        rank: item.score?.pos ?? i + 1,
+        name: item.playername ?? 'Unknown',
+        netScore: item.score?.score ?? null,
+        netScoreToPar: item.score?.toPar ?? null,
+        grossScore: g?.score?.score ?? null,
+        scoreToPar: g?.score?.toPar ?? null,
+        thru: item.score?.thru ?? 0,
+        handicap: item.hcp ?? undefined,
+      };
     });
-    
-    if (res.ok) {
-      return await res.text();
-    }
+
+    // GROSS leaderboard ordered by gross position
+    const grossLeaderboard: Player[] = grossItems.map((item, i) => {
+      const n = netById.get(item.playerId);
+      return {
+        rank: item.score?.pos ?? i + 1,
+        name: item.playername ?? 'Unknown',
+        grossScore: item.score?.score ?? null,
+        scoreToPar: item.score?.toPar ?? null,
+        netScore: n?.score?.score ?? null,
+        netScoreToPar: n?.score?.toPar ?? null,
+        thru: item.score?.thru ?? 0,
+        handicap: item.hcp ?? undefined,
+      };
+    });
+
+    console.log(`[Trackman] Live data: ${netLeaderboard.length} players from ${courseName}`);
+
+    return {
+      leaderboard: { gross: grossLeaderboard, net: netLeaderboard },
+      closestToPin: [],
+      longestDrive: [],
+      stats: [],
+      tournamentName: courseName,
+      lastUpdated: new Date().toISOString(),
+    };
   } catch (e) {
-    console.error('[Trackman] Portal HTML fetch failed:', e);
+    console.error('[Trackman] Live fetch failed, falling back to mock:', e);
+    const mock = generateMockData();
+    mock.error = `LIVE_DATA_ERROR: ${e}`;
+    return mock;
   }
-  return null;
 }
 
-/**
- * Try to extract embedded JSON state from the HTML.
- * React SPAs sometimes embed initial state in <script> tags.
- */
-function extractEmbeddedState(html: string): unknown {
-  // Common patterns for embedded state
-  const patterns = [
-    /__NEXT_DATA__\s*=\s*({.+?})\s*<\/script>/s,
-    /window\.__STATE__\s*=\s*({.+?});\s*<\/script>/s,
-    /window\.__INITIAL_STATE__\s*=\s*({.+?});\s*<\/script>/s,
-    /__REDUX_STATE__\s*=\s*({.+?});\s*<\/script>/s,
-  ];
-  
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    if (match) {
-      try {
-        return JSON.parse(match[1]);
-      } catch {
-        // Try next pattern
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Generate realistic mock data for development/demo
- * This is used when the live API can't be reached
- */
 export function generateMockData(): TournamentData {
   const mockPlayers = [
     { name: 'John Smith', gross: 68, net: 65, handicap: 3 },
@@ -205,7 +234,7 @@ export function generateMockData(): TournamentData {
     { name: 'Brian Jackson', gross: 80, net: 75, handicap: 5 },
   ];
 
-  const grossLeaderboard: Player[] = mockPlayers
+  const grossLeaderboard: Player[] = [...mockPlayers]
     .sort((a, b) => a.gross - b.gross)
     .map((p, i) => ({
       rank: i + 1,
@@ -260,106 +289,4 @@ export function generateMockData(): TournamentData {
     lastUpdated: new Date().toISOString(),
     error: undefined,
   };
-}
-
-/**
- * Main data fetcher — tries API first, falls back to mock
- */
-export async function fetchTournamentData(): Promise<TournamentData> {
-  console.log('[Trackman] Fetching tournament data...');
-  
-  // Step 1: Try direct API
-  const apiData = await fetchFromTrackmanAPI('coursePlayStrokeNet');
-  if (apiData) {
-    console.log('[Trackman] Got API data, parsing...');
-    return parseAPIResponse(apiData);
-  }
-
-  // Step 2: Try HTML + embedded state
-  const html = await fetchPortalHTML();
-  if (html) {
-    const state = extractEmbeddedState(html);
-    if (state) {
-      console.log('[Trackman] Got embedded state, parsing...');
-      return parseAPIResponse(state);
-    }
-  }
-
-  // Step 3: Return mock data with a note
-  console.log('[Trackman] Could not reach live data — returning mock. See SETUP.md for API discovery steps.');
-  const mock = generateMockData();
-  mock.error = 'MOCK_DATA: Live Trackman API not yet configured. See SETUP.md.';
-  return mock;
-}
-
-/**
- * Parse whatever Trackman's API returns into our normalized format.
- * 
- * NOTE: This needs to be updated once you inspect the real API response shape.
- * See SETUP.md for how to do this.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAPIResponse(data: any): TournamentData {
-  try {
-    // Try common Trackman API response shapes
-    const leaderboard = 
-      data?.leaderboard || 
-      data?.data?.leaderboard || 
-      data?.tournament?.leaderboard ||
-      data?.props?.pageProps?.leaderboard ||
-      null;
-
-    if (!leaderboard) {
-      throw new Error('No leaderboard found in API response');
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mapPlayer = (p: any, i: number): Player => ({
-      rank: p.rank ?? p.position ?? i + 1,
-      name: p.name ?? p.playerName ?? (p.firstName ? `${p.firstName} ${p.lastName}` : "Unknown"),
-      grossScore: p.grossScore ?? p.gross ?? p.totalGross ?? null,
-      netScore: p.netScore ?? p.net ?? p.totalNet ?? null,
-      thru: p.thru ?? p.holesPlayed ?? 18,
-      scoreToPar: p.scoreToPar ?? p.toPar ?? null,
-      netScoreToPar: p.netScoreToPar ?? p.netToPar ?? null,
-      handicap: p.handicap ?? p.courseHandicap ?? undefined,
-    });
-
-    const gross = (leaderboard.gross || leaderboard.stroke || leaderboard).map(mapPlayer);
-    const net = (leaderboard.net || leaderboard.strokeNet || leaderboard).map(mapPlayer);
-
-    return {
-      leaderboard: { gross, net },
-      closestToPin: (data?.closestToPin ?? []).map((e: any, i: number) => ({
-        rank: i + 1,
-        name: e.name ?? e.playerName ?? 'Unknown',
-        hole: e.hole ?? e.holeNumber ?? '?',
-        distance: e.distance ?? e.closestDistance ?? '?',
-        distanceUnit: e.unit ?? 'ft',
-      })),
-      longestDrive: (data?.longestDrive ?? []).map((e: any, i: number) => ({
-        rank: i + 1,
-        name: e.name ?? e.playerName ?? 'Unknown',
-        hole: e.hole ?? e.holeNumber ?? '?',
-        distance: e.distance ?? e.driveDistance ?? '?',
-        distanceUnit: e.unit ?? 'yds',
-      })),
-      stats: (data?.stats ?? gross.slice(0, 8)).map((p: any, i: number) => ({
-        rank: i + 1,
-        name: p.name ?? p.playerName ?? 'Unknown',
-        fairwaysHit: p.fairwaysHit ?? '--',
-        greensInRegulation: p.gir ?? p.greensInRegulation ?? '--',
-        puttsPerRound: p.putts ?? p.puttsPerRound ?? '--',
-        avgDrivingDistance: p.avgDistance ?? '--',
-        scrambling: p.scrambling ?? '--',
-      })),
-      tournamentName: data?.tournamentName ?? data?.name ?? 'Tournament',
-      lastUpdated: new Date().toISOString(),
-    };
-  } catch (e) {
-    console.error('[Trackman] Parse error:', e);
-    const mock = generateMockData();
-    mock.error = `PARSE_ERROR: ${e}. See SETUP.md.`;
-    return mock;
-  }
 }
