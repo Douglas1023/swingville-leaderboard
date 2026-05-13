@@ -181,7 +181,7 @@ html, body {
     order: 3;
     width: 100%;
     flex-direction: row;
-    justify-content: flex-end;
+    justify-content: center;
     align-items: center;
     gap: 8px;
     padding-top: 6px;
