@@ -73,6 +73,7 @@ const GET_ROUNDS_QUERY = `
 query getLeaderboardTournament($tournamentId: ID!) {
   node(id: $tournamentId) {
     ... on CourseTournament {
+      unit
       rounds {
         id
         roundNumber
@@ -81,6 +82,30 @@ query getLeaderboardTournament($tournamentId: ID!) {
         embeddedGame {
           closestToPin { holes }
           longestDrive { holes }
+        }
+      }
+    }
+  }
+}`;
+
+const EMBEDDED_GAMES_QUERY = `
+query getEmbeddedGames($tournamentId: ID!, $roundId: ID!, $ctpHole: Int!, $ldHole: Int!) {
+  node(id: $tournamentId) {
+    ... on CourseTournament {
+      closestToPinEmbeddedGameLeaderboard(roundId: $roundId, holeNumber: $ctpHole) {
+        records {
+          items {
+            playername
+            score { pos distanceToPin }
+          }
+        }
+      }
+      longestDriveEmbeddedGameLeaderboard(roundId: $roundId, holeNumber: $ldHole) {
+        records {
+          items {
+            playername
+            score { pos driveDistance }
+          }
         }
       }
     }
@@ -113,6 +138,14 @@ query roundLeaderboard($roundId: ID!, $publishedTournamentId: ID!, $scoringForma
   }
 }`;
 
+function formatFeet(distanceFt: number | null | undefined): string {
+  if (distanceFt == null) return '?';
+  const feet = Math.floor(distanceFt);
+  const inches = Math.round((distanceFt - feet) * 12);
+  if (inches === 12) return `${feet + 1}'0"`;
+  return `${feet}'${inches}"`;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function graphqlFetch(feQuery: string, query: string, variables: Record<string, unknown>): Promise<any> {
   const res = await fetch(`${GRAPHQL_URL}?fe_query=${feQuery}`, {
@@ -144,6 +177,8 @@ export async function fetchTournamentData(): Promise<TournamentData> {
     const activeRound = rounds.find((r: any) => r.roundState === 'STARTED') ?? rounds[rounds.length - 1];
     const roundId: string = activeRound.id;
     const courseName: string = activeRound.course?.displayName ?? 'Tournament';
+    const ctpHoles: number[] = activeRound.embeddedGame?.closestToPin?.holes ?? [];
+    const ldHoles: number[] = activeRound.embeddedGame?.longestDrive?.holes ?? [];
 
     const baseVars = {
       roundId,
@@ -153,16 +188,28 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       orderBy: 'POS',
     };
 
-    // Step 2: fetch NET and GROSS leaderboards in parallel
-    const [netResult, grossResult] = await Promise.all([
+    // Step 2: fetch NET, GROSS, and embedded games in parallel
+    const fetches: Promise<unknown>[] = [
       graphqlFetch('roundLeaderboard', ROUND_LEADERBOARD_QUERY, { ...baseVars, scoringFormat: 'STROKE_NET' }),
       graphqlFetch('roundLeaderboard', ROUND_LEADERBOARD_QUERY, { ...baseVars, scoringFormat: 'STROKE' }),
-    ]);
+    ];
+
+    const hasEmbeddedGames = ctpHoles.length > 0 && ldHoles.length > 0;
+    if (hasEmbeddedGames) {
+      fetches.push(graphqlFetch('getEmbeddedGames', EMBEDDED_GAMES_QUERY, {
+        tournamentId: TOURNAMENT_ID,
+        roundId,
+        ctpHole: ctpHoles[0],
+        ldHole: ldHoles[0],
+      }));
+    }
+
+    const [netResult, grossResult, embeddedResult] = await Promise.all(fetches) as [unknown, unknown, unknown];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const netItems: any[] = netResult?.data?.node?.roundLeaderboard?.records?.items ?? [];
+    const netItems: any[] = (netResult as any)?.data?.node?.roundLeaderboard?.records?.items ?? [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const grossItems: any[] = grossResult?.data?.node?.roundLeaderboard?.records?.items ?? [];
+    const grossItems: any[] = (grossResult as any)?.data?.node?.roundLeaderboard?.records?.items ?? [];
 
     // Build gross lookup by playerId for merging
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,12 +247,36 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       };
     });
 
-    console.log(`[Trackman] Live data: ${netLeaderboard.length} players from ${courseName}`);
+    // Embedded game leaderboards
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const embedded = embeddedResult as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ctpItems: any[] = embedded?.data?.node?.closestToPinEmbeddedGameLeaderboard?.records?.items ?? [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ldItems: any[] = embedded?.data?.node?.longestDriveEmbeddedGameLeaderboard?.records?.items ?? [];
+
+    const closestToPin: ClosestToPinEntry[] = ctpItems.map((item) => ({
+      rank: item.score?.pos ?? 0,
+      name: item.playername ?? 'Unknown',
+      hole: ctpHoles[0] ?? '?',
+      distance: formatFeet(item.score?.distanceToPin),
+      distanceUnit: 'ft',
+    }));
+
+    const longestDrive: LongestDriveEntry[] = ldItems.map((item) => ({
+      rank: item.score?.pos ?? 0,
+      name: item.playername ?? 'Unknown',
+      hole: ldHoles[0] ?? '?',
+      distance: Math.round(item.score?.driveDistance ?? 0).toString(),
+      distanceUnit: 'yds',
+    }));
+
+    console.log(`[Trackman] Live data: ${netLeaderboard.length} players, ${closestToPin.length} CTP, ${longestDrive.length} LD from ${courseName}`);
 
     return {
       leaderboard: { gross: grossLeaderboard, net: netLeaderboard },
-      closestToPin: [],
-      longestDrive: [],
+      closestToPin,
+      longestDrive,
       stats: [],
       tournamentName: courseName,
       lastUpdated: new Date().toISOString(),
