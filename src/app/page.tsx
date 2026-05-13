@@ -243,7 +243,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                   </div>
                   {player.handicap !== undefined && (
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'DM Mono, monospace' }}>
-                      HCP {player.handicap > 0 ? '+' : ''}{player.handicap}
+                      HCP {player.handicap < 0 ? '+' : ''}{Math.abs(player.handicap)}
                     </div>
                   )}
                 </div>
