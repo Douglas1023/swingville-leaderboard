@@ -344,18 +344,18 @@ export function generateMockData(): TournamentData {
   return {
     leaderboard: { gross: grossLeaderboard, net: netLeaderboard },
     closestToPin: [
-      { rank: 1, name: 'Mike Johnson', hole: 3, distance: '4\'2"', distanceUnit: 'ft' },
-      { rank: 2, name: 'Chris Davis', hole: 7, distance: '6\'8"', distanceUnit: 'ft' },
-      { rank: 3, name: 'John Smith', hole: 12, distance: '8\'1"', distanceUnit: 'ft' },
-      { rank: 4, name: 'Tom Williams', hole: 16, distance: '11\'4"', distanceUnit: 'ft' },
-      { rank: 5, name: 'James Brown', hole: 3, distance: '13\'9"', distanceUnit: 'ft' },
+      { rank: 1, name: 'Mike Johnson', hole: 3, distance: '4\'2"', distanceUnit: 'ft', rawDistance: 4.17 },
+      { rank: 2, name: 'Chris Davis', hole: 7, distance: '6\'8"', distanceUnit: 'ft', rawDistance: 6.67 },
+      { rank: 3, name: 'John Smith', hole: 12, distance: '8\'1"', distanceUnit: 'ft', rawDistance: 8.08 },
+      { rank: 4, name: 'Tom Williams', hole: 16, distance: '11\'4"', distanceUnit: 'ft', rawDistance: 11.33 },
+      { rank: 5, name: 'James Brown', hole: 3, distance: '13\'9"', distanceUnit: 'ft', rawDistance: 13.75 },
     ],
     longestDrive: [
-      { rank: 1, name: 'Steve Moore', hole: 5, distance: '318', distanceUnit: 'yds' },
-      { rank: 2, name: 'John Smith', hole: 14, distance: '305', distanceUnit: 'yds' },
-      { rank: 3, name: 'Kevin Taylor', hole: 5, distance: '298', distanceUnit: 'yds' },
-      { rank: 4, name: 'Robert Miller', hole: 14, distance: '291', distanceUnit: 'yds' },
-      { rank: 5, name: 'David Wilson', hole: 5, distance: '287', distanceUnit: 'yds' },
+      { rank: 1, name: 'Steve Moore', hole: 5, distance: '318', distanceUnit: 'yds', rawDistance: 318 },
+      { rank: 2, name: 'John Smith', hole: 14, distance: '305', distanceUnit: 'yds', rawDistance: 305 },
+      { rank: 3, name: 'Kevin Taylor', hole: 5, distance: '298', distanceUnit: 'yds', rawDistance: 298 },
+      { rank: 4, name: 'Robert Miller', hole: 14, distance: '291', distanceUnit: 'yds', rawDistance: 291 },
+      { rank: 5, name: 'David Wilson', hole: 5, distance: '287', distanceUnit: 'yds', rawDistance: 287 },
     ],
     stats: mockPlayers.slice(0, 8).map((p, i) => ({
       rank: i + 1,
