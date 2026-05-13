@@ -147,7 +147,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
   const maxScore = Math.max(...scores);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <QuadrantHeader title="Leaderboard" icon="🏆" sub={`${net.length} players`} />
 
       {/* Column headers */}
@@ -180,7 +180,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
         ))}
       </div>
 
-      <div style={{ overflowY: 'auto', flex: 1 }}>
+      <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
         {net.map((player, i) => {
           const isLeader = i === 0;
           const scoreColor = getScoreColor(player.netScoreToPar);
@@ -286,10 +286,10 @@ function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
   const maxDist = Math.max(...entries.map(e => e.rawDistance), 1);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <QuadrantHeader title="Closest to Pin" icon="⛳" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
 
-      <div style={{ overflowY: 'auto', flex: 1 }}>
+      <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
         {entries.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
         ) : entries.map((entry, i) => {
@@ -338,10 +338,10 @@ function LongestDriveQuadrant({ entries }: { entries: LongestDriveEntry[] }) {
   const maxDist = Math.max(...entries.map(e => e.rawDistance), 1);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <QuadrantHeader title="Longest Drive" icon="💪" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
 
-      <div style={{ overflowY: 'auto', flex: 1 }}>
+      <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
         {entries.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
         ) : entries.map((entry, i) => {
@@ -438,54 +438,16 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <header style={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '10px 24px',
-        background: '#fdf4d9',
-        borderBottom: '1px solid var(--border)',
-        gap: 16,
-        flexShrink: 0,
-      }}>
-        {/* Center: sponsor */}
-        <div style={{
-          position: 'absolute',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
-        }}>
-          <span style={{
-            fontSize: 9,
-            fontFamily: 'DM Mono, monospace',
-            letterSpacing: '0.18em',
-            color: '#023d1e',
-            opacity: 0.6,
-            textTransform: 'uppercase',
-          }}>
-            This Week&apos;s Sponsor
-          </span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/good-pilates-logo.png"
-            alt="Good Pilates"
-            style={{ height: 36, width: 'auto', display: 'block' }}
-          />
-        </div>
-
+      <header className="site-header">
         {/* Left: logo + course info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+        <div className="header-left">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/swingville-logo.png"
             alt="Swingville Golf Club"
             style={{ height: 90, width: 'auto', display: 'block' }}
           />
-          <div style={{ width: 1, height: 36, background: 'var(--border)' }} />
+          <div className="divider" style={{ width: 1, height: 36, background: 'var(--border)' }} />
           <div>
             <div style={{
               fontFamily: 'Bebas Neue, sans-serif',
@@ -507,8 +469,28 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Center: sponsor */}
+        <div className="header-sponsor">
+          <span style={{
+            fontSize: 9,
+            fontFamily: 'DM Mono, monospace',
+            letterSpacing: '0.18em',
+            color: '#023d1e',
+            opacity: 0.6,
+            textTransform: 'uppercase',
+          }}>
+            This Week&apos;s Sponsor
+          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/good-pilates-logo.png"
+            alt="Good Pilates"
+            style={{ height: 36, width: 'auto', display: 'block' }}
+          />
+        </div>
+
         {/* Right: live status + refresh */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <div className="header-right">
           {data?.error && (
             <div style={{
               fontSize: 11, color: 'var(--gold)',
@@ -535,7 +517,7 @@ export default function Dashboard() {
           </div>
 
           {/* Refresh info + button */}
-          <div style={{ textAlign: 'right' }}>
+          <div className="header-refresh-info">
             <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'DM Mono, monospace' }}>
               {lastRefresh && `Updated ${lastRefresh.toLocaleTimeString()}`}
             </div>
@@ -572,51 +554,23 @@ export default function Dashboard() {
       </header>
 
       {/* Main grid: leaderboard left (full height), CTP + LD stacked right */}
-      <main style={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gridTemplateRows: '1fr 1fr',
-        gap: 1,
-        background: 'var(--border)',
-        overflow: 'hidden',
-        minHeight: 0,
-      }}>
+      <main className="main-grid">
         {/* Left: Leaderboard — spans both rows */}
-        <div style={{
-          background: 'var(--surface)',
-          padding: 20,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          gridRow: '1 / 3',
-        }}>
+        <div className="quadrant quadrant-leaderboard">
           {loading ? <Skeleton /> : data ? (
             <LeaderboardQuadrant gross={data.leaderboard.gross} net={data.leaderboard.net} />
           ) : null}
         </div>
 
         {/* Top Right: Closest to Pin */}
-        <div style={{
-          background: 'var(--surface)',
-          padding: 20,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
+        <div className="quadrant">
           {loading ? <Skeleton /> : data ? (
             <ClosestToPinQuadrant entries={data.closestToPin} />
           ) : null}
         </div>
 
         {/* Bottom Right: Longest Drive */}
-        <div style={{
-          background: 'var(--surface)',
-          padding: 20,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
+        <div className="quadrant">
           {loading ? <Skeleton /> : data ? (
             <LongestDriveQuadrant entries={data.longestDrive} />
           ) : null}
