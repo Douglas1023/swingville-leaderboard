@@ -22,6 +22,7 @@ export interface ClosestToPinEntry {
   hole: string | number;
   distance: string;
   distanceUnit: string;
+  rawDistance: number;
 }
 
 export interface LongestDriveEntry {
@@ -30,6 +31,7 @@ export interface LongestDriveEntry {
   hole: string | number;
   distance: string;
   distanceUnit: string;
+  rawDistance: number;
 }
 
 export interface PlayerStats {
@@ -51,6 +53,8 @@ export interface TournamentData {
   longestDrive: LongestDriveEntry[];
   stats: PlayerStats[];
   tournamentName: string;
+  courseLocation?: string;
+  roundNumber?: number;
   lastUpdated: string;
   error?: string;
 }
@@ -78,7 +82,7 @@ query getLeaderboardTournament($tournamentId: ID!) {
         id
         roundNumber
         roundState
-        course { displayName }
+        course { displayName courseLocation }
         embeddedGame {
           closestToPin { holes }
           longestDrive { holes }
@@ -177,6 +181,8 @@ export async function fetchTournamentData(): Promise<TournamentData> {
     const activeRound = rounds.find((r: any) => r.roundState === 'STARTED') ?? rounds[rounds.length - 1];
     const roundId: string = activeRound.id;
     const courseName: string = activeRound.course?.displayName ?? 'Tournament';
+    const courseLocation: string = activeRound.course?.courseLocation ?? '';
+    const roundNumber: number = activeRound.roundNumber ?? 1;
     const ctpHoles: number[] = activeRound.embeddedGame?.closestToPin?.holes ?? [];
     const ldHoles: number[] = activeRound.embeddedGame?.longestDrive?.holes ?? [];
 
@@ -261,6 +267,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       hole: ctpHoles[0] ?? '?',
       distance: formatFeet(item.score?.distanceToPin),
       distanceUnit: 'ft',
+      rawDistance: item.score?.distanceToPin ?? 0,
     }));
 
     const longestDrive: LongestDriveEntry[] = ldItems.map((item) => ({
@@ -269,6 +276,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       hole: ldHoles[0] ?? '?',
       distance: Math.round(item.score?.driveDistance ?? 0).toString(),
       distanceUnit: 'yds',
+      rawDistance: item.score?.driveDistance ?? 0,
     }));
 
     console.log(`[Trackman] Live data: ${netLeaderboard.length} players, ${closestToPin.length} CTP, ${longestDrive.length} LD from ${courseName}`);
@@ -279,6 +287,8 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       longestDrive,
       stats: [],
       tournamentName: courseName,
+      courseLocation,
+      roundNumber,
       lastUpdated: new Date().toISOString(),
     };
   } catch (e) {

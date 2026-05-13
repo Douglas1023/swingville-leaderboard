@@ -1,26 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg: #0a0d0f;
-  --surface: #111519;
-  --surface2: #181e24;
-  --border: #1e2830;
-  --border2: #253040;
-  --green: #22c55e;
+  /* Swingville: Fairway Pine + Caddie Cream */
+  --bg: #0D1C11;
+  --surface: #142318;
+  --surface2: #1C3124;
+  --border: #2D4D38;
+  --border2: #3E6048;
+  --green: #4ade80;
   --green-dim: #166534;
-  --red: #ef4444;
+  --red: #f87171;
   --red-dim: #7f1d1d;
-  --gold: #f59e0b;
-  --gold-dim: #92400e;
+  --gold: #E8C870;
+  --gold-dim: #7A5C20;
   --blue: #3b82f6;
-  --text: #e8edf2;
-  --text-dim: #7a8fa0;
-  --text-muted: #3d5060;
-  --accent: #00d4ff;
-  --accent-dim: #0891b2;
-  --rank-gold: #ffd700;
-  --rank-silver: #c0c8d0;
-  --rank-bronze: #cd7f32;
+  --text: #F2E6C8;
+  --text-dim: #A89070;
+  --text-muted: #4A6858;
+  --accent: #E8D5A0;
+  --accent-dim: #B8A070;
+  --rank-gold: #FFD700;
+  --rank-silver: #C0C8D0;
+  --rank-bronze: #CD7F32;
 }
 
 * {
@@ -31,7 +32,22 @@
 
 html, body {
   height: 100%;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255,255,255,0.018) 0px,
+      rgba(255,255,255,0.018) 1px,
+      transparent 1px,
+      transparent 14px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(0,0,0,0.06) 0px,
+      rgba(0,0,0,0.06) 1px,
+      transparent 1px,
+      transparent 14px
+    );
   color: var(--text);
   font-family: 'DM Sans', sans-serif;
   font-size: 14px;
@@ -51,8 +67,8 @@ html, body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 212, 255, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.6); }
+  0%, 100% { box-shadow: 0 0 8px rgba(74, 222, 128, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.7); }
 }
 
 @keyframes spin {
@@ -74,11 +90,11 @@ html, body {
   border-radius: 50%;
   background: var(--green);
   animation: pulse-glow 2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--border2) 50%, var(--surface2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
