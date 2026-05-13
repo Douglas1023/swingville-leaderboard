@@ -114,11 +114,11 @@ function DistanceBar({ value, maxValue, color, invert }: {
   );
 }
 
-function QuadrantHeader({ title, icon, sub }: { title: string; icon: string; sub?: string }) {
+function QuadrantHeader({ title, icon, sub, live }: { title: string; icon: string; sub?: string; live?: boolean }) {
   return (
     <div style={{
       display: 'flex',
-      alignItems: 'baseline',
+      alignItems: 'center',
       gap: 10,
       marginBottom: 16,
       paddingBottom: 12,
@@ -132,6 +132,20 @@ function QuadrantHeader({ title, icon, sub }: { title: string; icon: string; sub
         color: 'var(--text)',
         lineHeight: 1,
       }}>{title}</span>
+      {live && (
+        <div className="leaderboard-live" style={{
+          display: 'none',
+          alignItems: 'center',
+          gap: 5,
+          background: 'rgba(74,222,128,0.08)',
+          border: '1px solid rgba(74,222,128,0.2)',
+          borderRadius: 20,
+          padding: '3px 8px',
+        }}>
+          <div className="live-dot" style={{ width: 6, height: 6 }} />
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--green)', fontFamily: 'DM Mono, monospace', letterSpacing: '0.12em' }}>LIVE</span>
+        </div>
+      )}
       {sub && (
         <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-muted)', fontFamily: 'DM Mono, monospace', letterSpacing: '0.06em' }}>
           {sub}
@@ -148,7 +162,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
 
   return (
     <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <QuadrantHeader title="Leaderboard" icon="🏆" sub={`${net.length} players`} />
+      <QuadrantHeader title="Leaderboard" icon="🏆" sub={`${net.length} players`} live />
 
       {/* Column headers */}
       <div style={{
@@ -469,9 +483,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Center: sponsor */}
+        {/* Center: sponsor (desktop centered, mobile inline next to course info) */}
         <div className="header-sponsor">
-          <span style={{
+          <span className="header-sponsor-label" style={{
             fontSize: 9,
             fontFamily: 'DM Mono, monospace',
             letterSpacing: '0.18em',
@@ -502,8 +516,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Live pulse */}
-          <div style={{
+          {/* Live pulse — hidden on mobile (moves to leaderboard header) */}
+          <div className="header-live-pulse" style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: 'rgba(74,222,128,0.08)',
             border: '1px solid rgba(74,222,128,0.2)',
