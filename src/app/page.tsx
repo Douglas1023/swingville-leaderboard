@@ -297,16 +297,17 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
 }
 
 function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
-  const maxDist = Math.max(...entries.map(e => e.rawDistance), 1);
+  const top5 = entries.slice(0, 5);
+  const maxDist = Math.max(...top5.map(e => e.rawDistance), 1);
 
   return (
     <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <QuadrantHeader title="Closest to Pin" icon="⛳" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
+      <QuadrantHeader title="Closest to Pin" icon="⛳" sub={top5[0] ? `Hole ${top5[0].hole}` : undefined} />
 
       <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
-        {entries.length === 0 ? (
+        {top5.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
-        ) : entries.map((entry, i) => {
+        ) : top5.map((entry, i) => {
           const rankColors = ['var(--rank-gold)', 'var(--rank-silver)', 'var(--rank-bronze)'];
           const barColor = rankColors[i] || 'var(--accent)';
 
@@ -316,7 +317,7 @@ function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
               className="animate-in"
               style={{
                 padding: '10px 4px',
-                borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none',
+                borderBottom: i < top5.length - 1 ? '1px solid var(--border)' : 'none',
                 animationDelay: `${i * 0.05}s`,
                 borderLeft: i === 0 ? '3px solid var(--rank-gold)' : '3px solid transparent',
                 background: i === 0 ? 'linear-gradient(90deg, rgba(255,215,0,0.06) 0%, transparent 50%)' : 'transparent',
@@ -349,16 +350,17 @@ function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
 }
 
 function LongestDriveQuadrant({ entries }: { entries: LongestDriveEntry[] }) {
-  const maxDist = Math.max(...entries.map(e => e.rawDistance), 1);
+  const top5 = entries.slice(0, 5);
+  const maxDist = Math.max(...top5.map(e => e.rawDistance), 1);
 
   return (
     <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <QuadrantHeader title="Longest Drive" icon="💪" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
+      <QuadrantHeader title="Longest Drive" icon="💪" sub={top5[0] ? `Hole ${top5[0].hole}` : undefined} />
 
       <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
-        {entries.length === 0 ? (
+        {top5.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
-        ) : entries.map((entry, i) => {
+        ) : top5.map((entry, i) => {
           const rankColors = ['var(--rank-gold)', 'var(--rank-silver)', 'var(--rank-bronze)'];
           const barColor = rankColors[i] || 'var(--accent)';
 
@@ -368,7 +370,7 @@ function LongestDriveQuadrant({ entries }: { entries: LongestDriveEntry[] }) {
               className="animate-in"
               style={{
                 padding: '10px 4px',
-                borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none',
+                borderBottom: i < top5.length - 1 ? '1px solid var(--border)' : 'none',
                 animationDelay: `${i * 0.05}s`,
                 borderLeft: i === 0 ? '3px solid var(--rank-gold)' : '3px solid transparent',
                 background: i === 0 ? 'linear-gradient(90deg, rgba(255,215,0,0.06) 0%, transparent 50%)' : 'transparent',
