@@ -231,14 +231,14 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                 gap: 8,
                 alignItems: 'center',
               }}>
-                {player.state ? (
+                {player.state === 'DNF' ? (
                   <span style={{
                     fontFamily: 'DM Mono, monospace',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: 'var(--text-dim)',
+                    color: 'var(--text-muted)',
                     letterSpacing: '0.05em',
-                  }}>{player.state}</span>
+                  }}>DNF</span>
                 ) : (
                   <RankBadge rank={player.rank} />
                 )}
