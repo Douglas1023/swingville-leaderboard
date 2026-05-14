@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@vercel/blob": "^2.3.3",
-    "@vercel/kv": "^3.0.0",
     "cheerio": "^1.0.0",
     "next": "15.5.18",
     "node-fetch": "^3.3.2",

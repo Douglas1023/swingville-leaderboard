@@ -33,13 +33,16 @@ async function writeLocalConfig(config: SiteConfig): Promise<void> {
 }
 
 export async function getConfig(): Promise<SiteConfig> {
-  if (process.env.KV_REST_API_URL) {
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const { kv } = await import('@vercel/kv');
-      const config = await kv.get<SiteConfig>('swingville:config');
-      if (config) return config;
+      const { list } = await import('@vercel/blob');
+      const { blobs } = await list({ prefix: 'swingville-config.json' });
+      if (blobs.length > 0) {
+        const res = await fetch(blobs[0].url, { cache: 'no-store' });
+        if (res.ok) return res.json();
+      }
     } catch (e) {
-      console.error('[Config] KV read failed:', e);
+      console.error('[Config] Blob read failed:', e);
     }
   }
   const local = await readLocalConfig();
@@ -47,9 +50,13 @@ export async function getConfig(): Promise<SiteConfig> {
 }
 
 export async function saveConfig(config: SiteConfig): Promise<void> {
-  if (process.env.KV_REST_API_URL) {
-    const { kv } = await import('@vercel/kv');
-    await kv.set('swingville:config', config);
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import('@vercel/blob');
+    await put('swingville-config.json', JSON.stringify(config), {
+      access: 'public',
+      addRandomSuffix: false,
+      contentType: 'application/json',
+    });
   } else {
     await writeLocalConfig(config);
   }
