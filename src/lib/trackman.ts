@@ -283,6 +283,8 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       rawDistance: item.score?.driveDistance ?? 0,
     }));
 
+    const specialStates = netLeaderboard.filter(p => p.state).map(p => `${p.name}=${p.state}`);
+    if (specialStates.length) console.log(`[Trackman] Special states: ${specialStates.join(', ')}`);
     console.log(`[Trackman] Live data: ${netLeaderboard.length} players, ${closestToPin.length} CTP, ${longestDrive.length} LD from ${courseName}`);
 
     return {
