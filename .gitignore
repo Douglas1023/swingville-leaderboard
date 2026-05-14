@@ -31,3 +31,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local admin config (dev only — stored in Vercel KV in production)
+/data/
+
+# local sponsor logo uploads (dev only — stored in Vercel Blob in production)
+/public/uploads/

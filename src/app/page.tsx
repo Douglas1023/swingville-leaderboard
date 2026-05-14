@@ -416,16 +416,26 @@ export default function Dashboard() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL / 1000);
   const [refreshing, setRefreshing] = useState(false);
+  const [sponsorName, setSponsorName] = useState('Good Pilates');
+  const [sponsorLogoUrl, setSponsorLogoUrl] = useState('/good-pilates-logo.png');
 
   const fetchData = useCallback(async () => {
     setRefreshing(true);
     try {
-      const res = await fetch('/api/tournament', { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed to fetch');
-      const json = await res.json();
+      const [tournamentRes, configRes] = await Promise.all([
+        fetch('/api/tournament', { cache: 'no-store' }),
+        fetch('/api/config', { cache: 'no-store' }),
+      ]);
+      if (!tournamentRes.ok) throw new Error('Failed to fetch');
+      const json = await tournamentRes.json();
       setData(json);
       setLastRefresh(new Date());
       setCountdown(REFRESH_INTERVAL / 1000);
+      if (configRes.ok) {
+        const cfg = await configRes.json();
+        if (cfg.sponsorName) setSponsorName(cfg.sponsorName);
+        if (cfg.sponsorLogoUrl) setSponsorLogoUrl(cfg.sponsorLogoUrl);
+      }
     } catch (e) {
       console.error('Fetch error:', e);
     } finally {
@@ -497,8 +507,8 @@ export default function Dashboard() {
           </span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/good-pilates-logo.png"
-            alt="Good Pilates"
+            src={sponsorLogoUrl}
+            alt={sponsorName}
             style={{ height: 36, width: 'auto', display: 'block' }}
           />
         </div>

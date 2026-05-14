@@ -59,8 +59,7 @@ export interface TournamentData {
   error?: string;
 }
 
-const TOURNAMENT_ID = process.env.TRACKMAN_TOURNAMENT_ID ||
-  'TXVsdGlSb3VuZFRvdXJuYW1lbnQKZGQ1MmNlNGMzLTc3NGQtNDljYS1hNGFiLWVmNWQ2ODM2YmE1ODpQdWJsaXNoZWQ=';
+import { getConfig } from './config';
 
 const GRAPHQL_URL = 'https://api.trackmangolf.com/graphql';
 
@@ -166,6 +165,8 @@ export async function fetchTournamentData(): Promise<TournamentData> {
   console.log('[Trackman] Fetching live tournament data...');
 
   try {
+    const { tournamentId: TOURNAMENT_ID } = await getConfig();
+
     // Step 1: get round IDs from the tournament
     const tournamentResult = await graphqlFetch(
       'getLeaderboardTournament',
