@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { saveConfig, getConfig } from '@/lib/config';
 
 export async function POST(req: NextRequest) {
-  const password = req.headers.get('x-admin-password');
-  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const formData = await req.formData();
   const tournamentId = (formData.get('tournamentId') as string)?.trim();
   const sponsorName = (formData.get('sponsorName') as string)?.trim();

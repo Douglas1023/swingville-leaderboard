@@ -38,9 +38,6 @@ const btnStyle: React.CSSProperties = {
 };
 
 export default function AdminPage() {
-  const [password, setPassword] = useState('');
-  const [authed, setAuthed] = useState(false);
-  const [authError, setAuthError] = useState(false);
   const [tournamentId, setTournamentId] = useState('');
   const [sponsorName, setSponsorName] = useState('');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -50,15 +47,6 @@ export default function AdminPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('adminPw');
-    if (saved) {
-      setPassword(saved);
-      setAuthed(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!authed) return;
     fetch('/api/config')
       .then(r => r.json())
       .then(cfg => {
@@ -66,15 +54,7 @@ export default function AdminPage() {
         setSponsorName(cfg.sponsorName || '');
         setLogoPreview(cfg.sponsorLogoUrl || null);
       });
-  }, [authed]);
-
-  function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setAuthError(false);
-    // Validate against server on first real save; for the gate just store and proceed
-    sessionStorage.setItem('adminPw', password);
-    setAuthed(true);
-  }
+  }, []);
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -95,11 +75,7 @@ export default function AdminPage() {
     form.append('sponsorName', sponsorName);
     if (logoFile) form.append('logo', logoFile);
 
-    const res = await fetch('/api/admin/save', {
-      method: 'POST',
-      headers: { 'x-admin-password': password },
-      body: form,
-    });
+    const res = await fetch('/api/admin/save', { method: 'POST', body: form });
 
     setSaving(false);
 
@@ -107,85 +83,36 @@ export default function AdminPage() {
       setStatus({ type: 'success', message: 'Saved! Leaderboard is now live with the new tournament and sponsor.' });
       setLogoFile(null);
     } else {
-      const err = await res.json();
-      if (res.status === 401) {
-        setAuthError(true);
-        sessionStorage.removeItem('adminPw');
-        setAuthed(false);
-      } else {
-        setStatus({ type: 'error', message: err.error || 'Something went wrong. Try again.' });
-      }
+      setStatus({ type: 'error', message: 'Something went wrong. Try again.' });
     }
   }
 
-  const pageStyle: React.CSSProperties = {
-    minHeight: '100vh',
-    background: '#023d1e',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    fontFamily: 'system-ui, sans-serif',
-  };
-
-  const cardStyle: React.CSSProperties = {
-    background: '#fff',
-    borderRadius: 16,
-    padding: 40,
-    width: '100%',
-    maxWidth: 520,
-    boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
-  };
-
-  if (!authed) {
-    return (
-      <div style={pageStyle}>
-        <div style={cardStyle}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/swingville-logo.png" alt="Swingville" style={{ height: 56, marginBottom: 24, display: 'block' }} />
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 4px', color: '#023d1e' }}>Admin</h1>
-          <p style={{ color: '#888', marginBottom: 28, fontSize: 14, margin: '4px 0 28px' }}>
-            Enter your password to manage the leaderboard.
-          </p>
-          {authError && (
-            <div style={{ background: '#fdecea', color: '#c0392b', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
-              Incorrect password.
-            </div>
-          )}
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoFocus
-              style={inputStyle}
-            />
-            <button type="submit" style={btnStyle}>Sign In</button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div style={pageStyle}>
-      <div style={cardStyle}>
+    <div style={{
+      minHeight: '100vh',
+      background: '#023d1e',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      fontFamily: 'system-ui, sans-serif',
+    }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: 16,
+        padding: 40,
+        width: '100%',
+        maxWidth: 520,
+        boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
+      }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 36 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/swingville-logo.png" alt="Swingville" style={{ height: 48, display: 'block' }} />
-          <div style={{ flex: 1 }}>
+          <div>
             <div style={{ fontWeight: 700, fontSize: 17, color: '#023d1e' }}>Admin</div>
             <div style={{ fontSize: 12, color: '#999' }}>Weekly Tournament Setup</div>
           </div>
-          <button
-            onClick={() => { sessionStorage.removeItem('adminPw'); setAuthed(false); setPassword(''); }}
-            style={{ fontSize: 12, color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            Sign out
-          </button>
         </div>
 
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -204,7 +131,8 @@ export default function AdminPage() {
             <div style={{ fontSize: 11, color: '#aaa', marginTop: 6, lineHeight: 1.5 }}>
               Go to your tournament on{' '}
               <strong style={{ color: '#666' }}>portal.trackmangolf.com</strong>, copy the last
-              part of the URL after <code style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 3 }}>/tournaments/</code>
+              part of the URL after{' '}
+              <code style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 3 }}>/tournaments/</code>
             </div>
           </div>
 
@@ -259,9 +187,6 @@ export default function AdminPage() {
               )}
               {!logoFile && logoPreview && (
                 <div style={{ fontSize: 11, color: '#bbb' }}>Click to replace</div>
-              )}
-              {!logoFile && !logoPreview && (
-                <div style={{ fontSize: 11, color: '#ccc' }}>JPG or PNG recommended</div>
               )}
             </div>
             <input
