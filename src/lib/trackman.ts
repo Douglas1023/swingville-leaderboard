@@ -7,6 +7,7 @@ export interface Player {
   scoreToPar: number | null;
   netScoreToPar: number | null;
   handicap?: number;
+  state?: string;
   rounds?: Round[];
 }
 
@@ -236,6 +237,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
         scoreToPar: g?.score?.toPar ?? null,
         thru: item.score?.thru ?? 0,
         handicap: item.hcp ?? undefined,
+        state: item.score?.state ?? undefined,
       };
     });
 
@@ -251,6 +253,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
         netScoreToPar: n?.score?.toPar ?? null,
         thru: item.score?.thru ?? 0,
         handicap: item.hcp ?? undefined,
+        state: item.score?.state ?? undefined,
       };
     });
 

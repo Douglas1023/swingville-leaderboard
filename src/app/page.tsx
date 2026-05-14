@@ -231,7 +231,17 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                 gap: 8,
                 alignItems: 'center',
               }}>
-                <RankBadge rank={player.rank} />
+                {player.state === 'DNF' ? (
+                  <span style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.05em',
+                  }}>DNF</span>
+                ) : (
+                  <RankBadge rank={player.rank} />
+                )}
 
                 <div style={{ overflow: 'hidden' }}>
                   <div style={{
