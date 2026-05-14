@@ -350,6 +350,9 @@ export function generateMockData(): TournamentData {
       { rank: 3, name: 'John Smith', hole: 12, distance: '8\'1"', distanceUnit: 'ft', rawDistance: 8.08 },
       { rank: 4, name: 'Tom Williams', hole: 16, distance: '11\'4"', distanceUnit: 'ft', rawDistance: 11.33 },
       { rank: 5, name: 'James Brown', hole: 3, distance: '13\'9"', distanceUnit: 'ft', rawDistance: 13.75 },
+      { rank: 6, name: 'Robert Miller', hole: 3, distance: '15\'0"', distanceUnit: 'ft', rawDistance: 15.0 },
+      { rank: 7, name: 'Kevin Taylor', hole: 3, distance: '17\'6"', distanceUnit: 'ft', rawDistance: 17.5 },
+      { rank: 8, name: 'Mark Anderson', hole: 3, distance: '21\'3"', distanceUnit: 'ft', rawDistance: 21.25 },
     ],
     longestDrive: [
       { rank: 1, name: 'Steve Moore', hole: 5, distance: '318', distanceUnit: 'yds', rawDistance: 318 },
@@ -357,6 +360,9 @@ export function generateMockData(): TournamentData {
       { rank: 3, name: 'Kevin Taylor', hole: 5, distance: '298', distanceUnit: 'yds', rawDistance: 298 },
       { rank: 4, name: 'Robert Miller', hole: 14, distance: '291', distanceUnit: 'yds', rawDistance: 291 },
       { rank: 5, name: 'David Wilson', hole: 5, distance: '287', distanceUnit: 'yds', rawDistance: 287 },
+      { rank: 6, name: 'Chris Davis', hole: 5, distance: '279', distanceUnit: 'yds', rawDistance: 279 },
+      { rank: 7, name: 'Tom Williams', hole: 5, distance: '271', distanceUnit: 'yds', rawDistance: 271 },
+      { rank: 8, name: 'James Brown', hole: 5, distance: '264', distanceUnit: 'yds', rawDistance: 264 },
     ],
     stats: mockPlayers.slice(0, 8).map((p, i) => ({
       rank: i + 1,
