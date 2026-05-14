@@ -133,6 +133,8 @@ export default function AdminPage() {
               <strong style={{ color: '#666' }}>portal.trackmangolf.com</strong>, copy the last
               part of the URL after{' '}
               <code style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 3 }}>/tournaments/</code>
+              {' '}and before{' '}
+              <code style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 3 }}>/leaderboards</code>
             </div>
           </div>
 
