@@ -198,7 +198,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
       </div>
 
       <div ref={outerRef} className="quadrant-scroll" style={{ position: 'relative', overflow: 'hidden', flex: 1, minHeight: 0 }}>
-        <div ref={innerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
+        <div ref={innerRef} className="scroll-inner" style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
         {net.map((player, i) => {
           const isLeader = i === 0;
           const scoreColor = getScoreColor(player.netScoreToPar);
@@ -313,6 +313,7 @@ function useAutoScroll(
   // For CTP/LD: constrain the outer div to exactly N entries using maxHeight
   useLayoutEffect(() => {
     if (clipTo === undefined) return;
+    if (window.matchMedia('(max-width: 768px)').matches) return;
     const outer = outerRef.current;
     const inner = innerRef.current;
     if (!outer || !inner || count === 0) return;
@@ -323,8 +324,9 @@ function useAutoScroll(
     return () => { outer.style.maxHeight = ''; };
   }, [outerRef, innerRef, count, clipTo]);
 
-  // Scroll cycle — runs for all panels, triggers whenever content overflows
+  // Scroll cycle — desktop only
   useEffect(() => {
+    if (window.matchMedia('(max-width: 768px)').matches) return;
     const outer = outerRef.current;
     const inner = innerRef.current;
     if (!outer || !inner || count === 0) return;
@@ -372,7 +374,7 @@ function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
       <QuadrantHeader title="Closest to Pin" icon="⛳" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
 
       <div ref={outerRef} className="quadrant-scroll" style={{ position: 'relative', overflow: 'hidden', flex: 1, minHeight: 0 }}>
-        <div ref={innerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
+        <div ref={innerRef} className="scroll-inner" style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
         {entries.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
         ) : entries.map((entry, i) => {
@@ -429,7 +431,7 @@ function LongestDriveQuadrant({ entries }: { entries: LongestDriveEntry[] }) {
       <QuadrantHeader title="Longest Drive" icon="💪" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
 
       <div ref={outerRef} className="quadrant-scroll" style={{ position: 'relative', overflow: 'hidden', flex: 1, minHeight: 0 }}>
-        <div ref={innerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
+        <div ref={innerRef} className="scroll-inner" style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
         {entries.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
         ) : entries.map((entry, i) => {

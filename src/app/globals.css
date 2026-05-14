@@ -210,5 +210,16 @@ html, body {
   .quadrant-leaderboard { grid-row: auto; }
 
   .quadrant-inner { height: auto !important; }
-  .quadrant-scroll { overflow-y: visible !important; flex: none !important; }
+  .quadrant-scroll {
+    overflow: visible !important;
+    flex: none !important;
+    position: static !important;
+    max-height: none !important;
+  }
+  .scroll-inner {
+    position: static !important;
+    transform: none !important;
+    transition: none !important;
+    width: 100% !important;
+  }
 }
