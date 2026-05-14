@@ -231,12 +231,12 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                 gap: 8,
                 alignItems: 'center',
               }}>
-                {player.state === 'DNF' ? (
+                {player.state === 'DID_NOT_FINISH' ? (
                   <span style={{
                     fontFamily: 'DM Mono, monospace',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: 'var(--text-muted)',
+                    color: 'var(--text-dim)',
                     letterSpacing: '0.05em',
                   }}>DNF</span>
                 ) : (
