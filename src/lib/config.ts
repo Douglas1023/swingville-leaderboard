@@ -63,6 +63,7 @@ export async function saveConfig(
       const { url } = await put(`swingville/sponsor-logo.${ext}`, logoFile, {
         access: 'public',
         addRandomSuffix: false,
+        allowOverwrite: true,
       });
       logoUrl = url;
     }
@@ -71,6 +72,7 @@ export async function saveConfig(
     await put('swingville/config.json', JSON.stringify(updated), {
       access: 'public',
       addRandomSuffix: false,
+        allowOverwrite: true,
       contentType: 'application/json',
     });
     return updated;
