@@ -59,20 +59,30 @@ export async function saveConfig(
     const { put } = await import('@vercel/blob');
 
     if (logoFile && logoFile.size > 0) {
+      const { list, del } = await import('@vercel/blob');
       const ext = logoFile.name.split('.').pop() || 'webp';
-      const { url } = await put(`swingville/sponsor-logo.${ext}`, logoFile, {
+      const newPath = `swingville/sponsor-logo.${ext}`;
+
+      const { url } = await put(newPath, logoFile, {
         access: 'public',
         addRandomSuffix: false,
         allowOverwrite: true,
       });
       logoUrl = url;
+
+      // Delete any old logo files with a different extension
+      const { blobs: oldLogos } = await list({ prefix: 'swingville/sponsor-logo' });
+      const stale = oldLogos.filter(b => b.pathname !== newPath);
+      if (stale.length > 0) {
+        await del(stale.map(b => b.url));
+      }
     }
 
     const updated = { ...config, sponsorLogoUrl: logoUrl };
     await put('swingville/config.json', JSON.stringify(updated), {
       access: 'public',
       addRandomSuffix: false,
-        allowOverwrite: true,
+      allowOverwrite: true,
       contentType: 'application/json',
     });
     return updated;
