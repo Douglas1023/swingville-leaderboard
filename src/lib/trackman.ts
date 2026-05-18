@@ -163,10 +163,11 @@ async function graphqlFetch(feQuery: string, query: string, variables: Record<st
 }
 
 export async function fetchTournamentData(): Promise<TournamentData> {
+  const { tournamentId: TOURNAMENT_ID } = await getConfig();
+
   console.log('[Trackman] Fetching live tournament data...');
 
   try {
-    const { tournamentId: TOURNAMENT_ID } = await getConfig();
 
     // Step 1: get round IDs from the tournament
     const tournamentResult = await graphqlFetch(

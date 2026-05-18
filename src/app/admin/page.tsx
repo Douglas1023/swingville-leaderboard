@@ -1,91 +1,85 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px 12px',
-  border: '1px solid #d0d0d0',
-  borderRadius: 8,
-  fontSize: 14,
-  outline: 'none',
-  boxSizing: 'border-box',
-  fontFamily: 'system-ui, sans-serif',
-};
+type Status = 'idle' | 'saving' | 'success' | 'error';
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
+  fontFamily: 'DM Mono, monospace',
   fontSize: 11,
-  fontWeight: 700,
-  color: '#555',
-  marginBottom: 6,
+  letterSpacing: '0.15em',
   textTransform: 'uppercase',
-  letterSpacing: '0.1em',
+  color: '#666',
+  marginBottom: 8,
 };
 
-const btnStyle: React.CSSProperties = {
-  background: '#023d1e',
-  color: '#fff',
-  border: 'none',
-  borderRadius: 8,
-  padding: '14px',
-  fontSize: 15,
-  fontWeight: 700,
-  cursor: 'pointer',
+const inputStyle: React.CSSProperties = {
   width: '100%',
-  letterSpacing: '0.04em',
-  fontFamily: 'system-ui, sans-serif',
+  padding: '12px 14px',
+  border: '1.5px solid #e0e0e0',
+  borderRadius: 8,
+  fontSize: 13,
+  fontFamily: 'DM Mono, monospace',
+  outline: 'none',
+  boxSizing: 'border-box',
+  color: '#111',
 };
 
 export default function AdminPage() {
   const [tournamentId, setTournamentId] = useState('');
   const [sponsorName, setSponsorName] = useState('');
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [currentLogoUrl, setCurrentLogoUrl] = useState('');
+  const [status, setStatus] = useState<Status>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/config')
       .then(r => r.json())
       .then(cfg => {
-        setTournamentId(cfg.tournamentId || '');
-        setSponsorName(cfg.sponsorName || '');
-        setLogoPreview(cfg.sponsorLogoUrl || null);
-      });
+        setTournamentId(cfg.tournamentId ?? '');
+        setSponsorName(cfg.sponsorName ?? '');
+        setCurrentLogoUrl(cfg.sponsorLogoUrl ?? '');
+      })
+      .catch(() => {});
   }, []);
 
-  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function pickFile(file: File | null) {
     setLogoFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setLogoPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    setLogoPreview(file ? URL.createObjectURL(file) : '');
   }
 
-  async function handleSave(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setStatus(null);
+    setStatus('saving');
+    setErrorMsg('');
 
-    const form = new FormData();
-    form.append('tournamentId', tournamentId);
-    form.append('sponsorName', sponsorName);
-    if (logoFile) form.append('logo', logoFile);
+    try {
+      const body = new FormData();
+      body.append('tournamentId', tournamentId);
+      body.append('sponsorName', sponsorName);
+      if (logoFile) body.append('logo', logoFile);
 
-    const res = await fetch('/api/admin/save', { method: 'POST', body: form });
+      const res = await fetch('/api/admin/save', { method: 'POST', body });
+      const json = await res.json().catch(() => ({}));
 
-    setSaving(false);
+      if (!res.ok) throw new Error(json.error || 'Save failed');
 
-    if (res.ok) {
-      setStatus({ type: 'success', message: 'Saved! Leaderboard is now live with the new tournament and sponsor.' });
+      if (json.sponsorLogoUrl) setCurrentLogoUrl(json.sponsorLogoUrl);
       setLogoFile(null);
-    } else {
-      setStatus({ type: 'error', message: 'Something went wrong. Try again.' });
+      setLogoPreview('');
+      setStatus('success');
+      setTimeout(() => setStatus('idle'), 4000);
+    } catch (err: unknown) {
+      setStatus('error');
+      setErrorMsg(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     }
   }
+
+  const displayLogo = logoPreview || currentLogoUrl;
 
   return (
     <div style={{
@@ -94,79 +88,91 @@ export default function AdminPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 24,
+      padding: 20,
       fontFamily: 'system-ui, sans-serif',
     }}>
       <div style={{
         background: '#fff',
         borderRadius: 16,
-        padding: 40,
+        padding: 36,
         width: '100%',
-        maxWidth: 520,
+        maxWidth: 500,
         boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
       }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 36 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/swingville-logo.png" alt="Swingville" style={{ height: 48, display: 'block' }} />
+          <img src="/swingville-logo.png" alt="Swingville" style={{ height: 56, width: 'auto' }} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: 17, color: '#023d1e' }}>Admin</div>
-            <div style={{ fontSize: 12, color: '#999' }}>Weekly Tournament Setup</div>
+            <div style={{
+              fontFamily: 'Bebas Neue, sans-serif',
+              fontSize: 30,
+              color: '#023d1e',
+              lineHeight: 1,
+            }}>
+              Admin
+            </div>
+            <div style={{ fontSize: 13, color: '#888', marginTop: 3 }}>Weekly Tournament Setup</div>
           </div>
         </div>
 
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-
+        <form onSubmit={handleSubmit}>
           {/* Tournament ID */}
-          <div>
+          <div style={{ marginBottom: 24 }}>
             <label style={labelStyle}>Trackman Tournament ID</label>
             <input
+              style={inputStyle}
               type="text"
               value={tournamentId}
               onChange={e => setTournamentId(e.target.value)}
-              placeholder="Paste from Trackman URL…"
+              placeholder="Paste the tournament ID here…"
               required
-              style={inputStyle}
             />
-            <div style={{ fontSize: 11, color: '#aaa', marginTop: 6, lineHeight: 1.5 }}>
-              Go to your tournament on{' '}
-              <strong style={{ color: '#666' }}>portal.trackmangolf.com</strong>, copy the last
-              part of the URL after{' '}
-              <code style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 3 }}>/tournaments/</code>
+            <p style={{ fontSize: 12, color: '#999', margin: '6px 0 0' }}>
+              Go to your tournament on <strong>portal.trackmangolf.com</strong>, copy the last part of the URL
+              after{' '}
+              <code style={{ background: '#f2f2f2', padding: '1px 5px', borderRadius: 3 }}>/tournaments/</code>
               {' '}and before{' '}
-              <code style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 3 }}>/leaderboards</code>
-            </div>
+              <code style={{ background: '#f2f2f2', padding: '1px 5px', borderRadius: 3 }}>/leaderboards</code>
+            </p>
           </div>
 
-          <div style={{ height: 1, background: '#f0f0f0' }} />
+          <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '4px 0 24px' }} />
 
           {/* Sponsor Name */}
-          <div>
+          <div style={{ marginBottom: 24 }}>
             <label style={labelStyle}>This Week&apos;s Sponsor</label>
             <input
+              style={{ ...inputStyle, fontFamily: 'inherit', fontSize: 14 }}
               type="text"
               value={sponsorName}
               onChange={e => setSponsorName(e.target.value)}
-              placeholder="e.g. Good Pilates"
-              required
-              style={inputStyle}
+              placeholder="Sponsor name"
             />
           </div>
 
           {/* Sponsor Logo */}
-          <div>
+          <div style={{ marginBottom: 28 }}>
             <label style={labelStyle}>Sponsor Logo</label>
             <div
-              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onClick={() => fileRef.current?.click()}
+              onKeyDown={e => e.key === 'Enter' && fileRef.current?.click()}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => {
+                e.preventDefault();
+                const f = e.dataTransfer.files[0];
+                if (f?.type.startsWith('image/')) pickFile(f);
+              }}
               style={{
-                border: `2px dashed ${logoFile ? '#023d1e' : '#d8d8d8'}`,
+                border: '2px dashed #ccc',
                 borderRadius: 10,
-                padding: 24,
+                padding: '24px 16px',
                 textAlign: 'center',
                 cursor: 'pointer',
-                background: logoFile ? '#f0f6f2' : '#fafafa',
-                transition: 'all 0.15s',
-                minHeight: 100,
+                background: '#fafafa',
+                minHeight: 120,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -174,52 +180,77 @@ export default function AdminPage() {
                 gap: 8,
               }}
             >
-              {logoPreview ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={logoPreview}
-                  alt="Sponsor preview"
-                  style={{ maxHeight: 72, maxWidth: '100%', objectFit: 'contain' }}
-                />
+              {displayLogo ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={displayLogo}
+                    alt="Sponsor logo preview"
+                    style={{ maxHeight: 80, maxWidth: '100%', objectFit: 'contain' }}
+                  />
+                  {logoFile && (
+                    <span style={{ fontSize: 12, color: '#888' }}>{logoFile.name}</span>
+                  )}
+                </>
               ) : (
-                <div style={{ color: '#bbb', fontSize: 14 }}>Click to upload JPG or PNG</div>
-              )}
-              {logoFile && (
-                <div style={{ fontSize: 11, color: '#023d1e', fontWeight: 600 }}>{logoFile.name}</div>
-              )}
-              {!logoFile && logoPreview && (
-                <div style={{ fontSize: 11, color: '#bbb' }}>Click to replace</div>
+                <span style={{ fontSize: 13, color: '#bbb' }}>Click or drag an image here</span>
               )}
             </div>
             <input
-              ref={fileInputRef}
+              ref={fileRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleLogoChange}
+              accept="image/*"
               style={{ display: 'none' }}
+              onChange={e => pickFile(e.target.files?.[0] ?? null)}
             />
           </div>
 
-          {/* Status */}
-          {status && (
+          {/* Status messages */}
+          {status === 'error' && (
             <div style={{
-              padding: '12px 16px',
+              background: '#fff1f1',
+              border: '1px solid #fcc',
               borderRadius: 8,
-              background: status.type === 'success' ? '#e8f5e9' : '#fdecea',
-              color: status.type === 'success' ? '#1b5e20' : '#c0392b',
-              fontSize: 14,
-              lineHeight: 1.5,
+              padding: '12px 14px',
+              color: '#c0392b',
+              fontSize: 13,
+              marginBottom: 16,
             }}>
-              {status.message}
+              {errorMsg}
+            </div>
+          )}
+          {status === 'success' && (
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #86efac',
+              borderRadius: 8,
+              padding: '12px 14px',
+              color: '#166534',
+              fontSize: 13,
+              marginBottom: 16,
+            }}>
+              Saved! The leaderboard is now live with the new tournament.
             </div>
           )}
 
           <button
             type="submit"
-            disabled={saving}
-            style={{ ...btnStyle, opacity: saving ? 0.65 : 1, marginTop: 4 }}
+            disabled={status === 'saving'}
+            style={{
+              width: '100%',
+              padding: 14,
+              background: '#023d1e',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: status === 'saving' ? 'not-allowed' : 'pointer',
+              opacity: status === 'saving' ? 0.65 : 1,
+              letterSpacing: '0.02em',
+            }}
           >
-            {saving ? 'Saving…' : 'Save & Go Live'}
+            {status === 'saving' ? 'Saving…' : 'Save & Go Live'}
           </button>
         </form>
       </div>
