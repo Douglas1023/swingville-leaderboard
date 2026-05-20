@@ -416,12 +416,16 @@ export default function Dashboard() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL / 1000);
   const [refreshing, setRefreshing] = useState(false);
-  const [sponsorLogoUrl, setSponsorLogoUrl] = useState('/sponsors/good-pilates.png');
+  const [sponsorName, setSponsorName] = useState('Good Pilates');
+  const [sponsorLogoUrl, setSponsorLogoUrl] = useState('/good-pilates-logo.png');
 
   useEffect(() => {
-    fetch('/api/config')
+    fetch('/api/admin')
       .then(r => r.json())
-      .then(cfg => { if (cfg.sponsorLogoUrl) setSponsorLogoUrl(cfg.sponsorLogoUrl); })
+      .then(cfg => {
+        if (cfg.sponsorName) setSponsorName(cfg.sponsorName);
+        if (cfg.sponsorLogoUrl) setSponsorLogoUrl(cfg.sponsorLogoUrl);
+      })
       .catch(() => {});
   }, []);
 
@@ -506,7 +510,7 @@ export default function Dashboard() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={sponsorLogoUrl}
-            alt="This week's sponsor"
+            alt={sponsorName}
             style={{ height: 36, width: 'auto', display: 'block' }}
           />
         </div>

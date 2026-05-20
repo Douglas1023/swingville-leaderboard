@@ -1,38 +1,76 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { SPONSORS } from '@/lib/sponsors';
+import { useState, useEffect, useRef } from 'react';
 
 type Status = 'idle' | 'saving' | 'success' | 'error';
 
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontFamily: 'DM Mono, monospace',
+  fontSize: 11,
+  letterSpacing: '0.15em',
+  textTransform: 'uppercase',
+  color: '#666',
+  marginBottom: 8,
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '12px 14px',
+  border: '1.5px solid #e0e0e0',
+  borderRadius: 8,
+  fontSize: 13,
+  fontFamily: 'DM Mono, monospace',
+  outline: 'none',
+  boxSizing: 'border-box',
+  color: '#111',
+};
+
 export default function AdminPage() {
   const [tournamentId, setTournamentId] = useState('');
-  const [sponsorLogoUrl, setSponsorLogoUrl] = useState('');
+  const [sponsorName, setSponsorName] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState('');
+  const [currentLogoUrl, setCurrentLogoUrl] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/config')
       .then(r => r.json())
       .then(cfg => {
         setTournamentId(cfg.tournamentId ?? '');
-        setSponsorLogoUrl(cfg.sponsorLogoUrl ?? SPONSORS[0].logoUrl);
+        setSponsorName(cfg.sponsorName ?? '');
+        setCurrentLogoUrl(cfg.sponsorLogoUrl ?? '');
       })
       .catch(() => {});
   }, []);
+
+  function pickFile(file: File | null) {
+    setLogoFile(file);
+    setLogoPreview(file ? URL.createObjectURL(file) : '');
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus('saving');
     setErrorMsg('');
+
     try {
-      const res = await fetch('/api/admin/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tournamentId, sponsorLogoUrl }),
-      });
+      const body = new FormData();
+      body.append('tournamentId', tournamentId);
+      body.append('sponsorName', sponsorName);
+      if (logoFile) body.append('logo', logoFile);
+
+      const res = await fetch('/api/admin/save', { method: 'POST', body });
       const json = await res.json().catch(() => ({}));
+
       if (!res.ok) throw new Error(json.error || 'Save failed');
+
+      if (json.sponsorLogoUrl) setCurrentLogoUrl(json.sponsorLogoUrl);
+      setLogoFile(null);
+      setLogoPreview('');
       setStatus('success');
       setTimeout(() => setStatus('idle'), 4000);
     } catch (err: unknown) {
@@ -40,6 +78,8 @@ export default function AdminPage() {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     }
   }
+
+  const displayLogo = logoPreview || currentLogoUrl;
 
   return (
     <div style={{
@@ -64,7 +104,12 @@ export default function AdminPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/swingville-logo.png" alt="Swingville" style={{ height: 56, width: 'auto' }} />
           <div>
-            <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 30, color: '#023d1e', lineHeight: 1 }}>
+            <div style={{
+              fontFamily: 'Bebas Neue, sans-serif',
+              fontSize: 30,
+              color: '#023d1e',
+              lineHeight: 1,
+            }}>
               Admin
             </div>
             <div style={{ fontSize: 13, color: '#888', marginTop: 3 }}>Weekly Tournament Setup</div>
@@ -74,37 +119,17 @@ export default function AdminPage() {
         <form onSubmit={handleSubmit}>
           {/* Tournament ID */}
           <div style={{ marginBottom: 24 }}>
-            <label style={{
-              display: 'block',
-              fontFamily: 'DM Mono, monospace',
-              fontSize: 11,
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              color: '#666',
-              marginBottom: 8,
-            }}>
-              Trackman Tournament ID
-            </label>
+            <label style={labelStyle}>Trackman Tournament ID</label>
             <input
+              style={inputStyle}
               type="text"
               value={tournamentId}
               onChange={e => setTournamentId(e.target.value)}
               placeholder="Paste the tournament ID here…"
               required
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                border: '1.5px solid #e0e0e0',
-                borderRadius: 8,
-                fontSize: 13,
-                fontFamily: 'DM Mono, monospace',
-                outline: 'none',
-                boxSizing: 'border-box',
-                color: '#111',
-              }}
             />
             <p style={{ fontSize: 12, color: '#999', margin: '6px 0 0' }}>
-              Go to your tournament on <strong>portal.trackmangolf.com</strong>, copy the last part
+              Go to your tournament on <strong>portal.trackmangolf.com</strong>, copy the last part of the URL
               after{' '}
               <code style={{ background: '#f2f2f2', padding: '1px 5px', borderRadius: 3 }}>/tournaments/</code>
               {' '}and before{' '}
@@ -114,58 +139,70 @@ export default function AdminPage() {
 
           <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '4px 0 24px' }} />
 
-          {/* Sponsor Logo Picker */}
+          {/* Sponsor Name */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>This Week&apos;s Sponsor</label>
+            <input
+              style={{ ...inputStyle, fontFamily: 'inherit', fontSize: 14 }}
+              type="text"
+              value={sponsorName}
+              onChange={e => setSponsorName(e.target.value)}
+              placeholder="Sponsor name"
+            />
+          </div>
+
+          {/* Sponsor Logo */}
           <div style={{ marginBottom: 28 }}>
-            <label style={{
-              display: 'block',
-              fontFamily: 'DM Mono, monospace',
-              fontSize: 11,
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              color: '#666',
-              marginBottom: 12,
-            }}>
-              This Week&apos;s Sponsor
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-              {SPONSORS.map(s => {
-                const selected = sponsorLogoUrl === s.logoUrl;
-                return (
-                  <button
-                    key={s.logoUrl}
-                    type="button"
-                    onClick={() => setSponsorLogoUrl(s.logoUrl)}
-                    style={{
-                      padding: '16px 12px',
-                      border: selected ? '2px solid #023d1e' : '2px solid #e0e0e0',
-                      borderRadius: 10,
-                      background: selected ? '#f0f6f2' : '#fafafa',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 8,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={s.logoUrl}
-                      alt={s.name}
-                      style={{ height: 48, maxWidth: '100%', objectFit: 'contain' }}
-                    />
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: selected ? 700 : 400,
-                      color: selected ? '#023d1e' : '#888',
-                      fontFamily: 'DM Mono, monospace',
-                    }}>
-                      {s.name}
-                    </span>
-                  </button>
-                );
-              })}
+            <label style={labelStyle}>Sponsor Logo</label>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => fileRef.current?.click()}
+              onKeyDown={e => e.key === 'Enter' && fileRef.current?.click()}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => {
+                e.preventDefault();
+                const f = e.dataTransfer.files[0];
+                if (f?.type.startsWith('image/')) pickFile(f);
+              }}
+              style={{
+                border: '2px dashed #ccc',
+                borderRadius: 10,
+                padding: '24px 16px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                background: '#fafafa',
+                minHeight: 120,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              {displayLogo ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={displayLogo}
+                    alt="Sponsor logo preview"
+                    style={{ maxHeight: 80, maxWidth: '100%', objectFit: 'contain' }}
+                  />
+                  {logoFile && (
+                    <span style={{ fontSize: 12, color: '#888' }}>{logoFile.name}</span>
+                  )}
+                </>
+              ) : (
+                <span style={{ fontSize: 13, color: '#bbb' }}>Click or drag an image here</span>
+              )}
             </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => pickFile(e.target.files?.[0] ?? null)}
+            />
           </div>
 
           {/* Status messages */}
@@ -192,7 +229,7 @@ export default function AdminPage() {
               fontSize: 13,
               marginBottom: 16,
             }}>
-              Saved! The leaderboard is now live.
+              Saved! The leaderboard is now live with the new tournament.
             </div>
           )}
 
