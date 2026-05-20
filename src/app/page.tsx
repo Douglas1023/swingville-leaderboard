@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import type { TournamentData, Player, ClosestToPinEntry, LongestDriveEntry } from '@/lib/trackman';
 
 const REFRESH_INTERVAL = parseInt(process.env.NEXT_PUBLIC_REFRESH_INTERVAL || '30000');
@@ -155,10 +155,65 @@ function QuadrantHeader({ title, icon, sub, live }: { title: string; icon: strin
   );
 }
 
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+function useAutoScroll(
+  outerRef: React.RefObject<HTMLDivElement | null>,
+  innerRef: React.RefObject<HTMLDivElement | null>,
+  count: number,
+  clipTo?: number,
+) {
+  useLayoutEffect(() => {
+    if (clipTo === undefined) return;
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner || count === 0) return;
+    const nth = inner.children[Math.min(clipTo - 1, inner.children.length - 1)] as HTMLElement;
+    if (nth) outer.style.maxHeight = `${nth.offsetTop + nth.offsetHeight}px`;
+    return () => { outer.style.maxHeight = ''; };
+  }, [outerRef, innerRef, count, clipTo]);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner || count === 0) return;
+    let cancelled = false;
+
+    async function cycle() {
+      await sleep(200);
+      while (!cancelled) {
+        const maxT = inner!.offsetHeight - outer!.clientHeight;
+        if (maxT <= 0) { await sleep(500); continue; }
+        const scrollMs = (maxT / 40) * 1000;
+        await sleep(4000);
+        if (cancelled) break;
+        inner!.style.transition = `transform ${(scrollMs / 1000).toFixed(1)}s linear`;
+        inner!.style.transform = `translateY(-${maxT}px)`;
+        await sleep(scrollMs + 200);
+        if (cancelled) break;
+        await sleep(2000);
+        if (cancelled) break;
+        inner!.style.transition = 'transform 1.5s ease-in-out';
+        inner!.style.transform = 'translateY(0px)';
+        await sleep(1700);
+      }
+    }
+
+    cycle();
+    return () => {
+      cancelled = true;
+      if (inner) { inner.style.transition = ''; inner.style.transform = ''; }
+    };
+  }, [outerRef, innerRef, count]);
+}
+
 function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
   const scores = net.map(p => p.netScoreToPar ?? 0);
   const minScore = Math.min(...scores);
   const maxScore = Math.max(...scores);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  useAutoScroll(outerRef, innerRef, net.length);
 
   return (
     <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -194,7 +249,8 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
         ))}
       </div>
 
-      <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
+      <div ref={outerRef} className="quadrant-scroll" style={{ position: 'relative', overflow: 'hidden', flex: 1, minHeight: 0 }}>
+        <div ref={innerRef} className="scroll-inner" style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
         {net.map((player, i) => {
           const isDNF = player.state === 'DID_NOT_FINISH' || player.state === 'DNF';
           const isLeader = i === 0 && !isDNF;
@@ -302,6 +358,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -309,12 +366,16 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
 
 function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
   const maxDist = Math.max(...entries.map(e => e.rawDistance), 1);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  useAutoScroll(outerRef, innerRef, entries.length, 5);
 
   return (
     <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <QuadrantHeader title="Closest to Pin" icon="⛳" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
 
-      <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
+      <div ref={outerRef} className="quadrant-scroll" style={{ position: 'relative', overflow: 'hidden', flex: 1, minHeight: 0 }}>
+        <div ref={innerRef} className="scroll-inner" style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
         {entries.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
         ) : entries.map((entry, i) => {
@@ -354,6 +415,7 @@ function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
@@ -361,12 +423,16 @@ function ClosestToPinQuadrant({ entries }: { entries: ClosestToPinEntry[] }) {
 
 function LongestDriveQuadrant({ entries }: { entries: LongestDriveEntry[] }) {
   const maxDist = Math.max(...entries.map(e => e.rawDistance), 1);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  useAutoScroll(outerRef, innerRef, entries.length, 5);
 
   return (
     <div className="quadrant-inner" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <QuadrantHeader title="Longest Drive" icon="💪" sub={entries[0] ? `Hole ${entries[0].hole}` : undefined} />
 
-      <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
+      <div ref={outerRef} className="quadrant-scroll" style={{ position: 'relative', overflow: 'hidden', flex: 1, minHeight: 0 }}>
+        <div ref={innerRef} className="scroll-inner" style={{ position: 'absolute', top: 0, left: 0, right: 0, willChange: 'transform' }}>
         {entries.length === 0 ? (
           <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No data yet</div>
         ) : entries.map((entry, i) => {
@@ -406,6 +472,7 @@ function LongestDriveQuadrant({ entries }: { entries: LongestDriveEntry[] }) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
