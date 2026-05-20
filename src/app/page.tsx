@@ -196,10 +196,10 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
 
       <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
         {net.map((player, i) => {
-          const isDNF = player.state === 'DNF';
+          const isDNF = player.state === 'DID_NOT_FINISH' || player.state === 'DNF';
           const isLeader = i === 0 && !isDNF;
-          const scoreColor = getScoreColor(isDNF ? null : player.netScoreToPar);
-          const grossColor = getScoreColor(isDNF ? null : player.scoreToPar);
+          const scoreColor = getScoreColor(player.netScoreToPar);
+          const grossColor = getScoreColor(player.scoreToPar);
 
           return (
             <div
@@ -269,7 +269,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                     textShadow: player.netScoreToPar !== null && player.netScoreToPar < 0
                       ? `0 0 12px ${scoreColor}66` : 'none',
                   }}>
-                    {isDNF ? '—' : formatScore(player.netScoreToPar)}
+                    {formatScore(player.netScoreToPar)}
                   </span>
                 </div>
 
@@ -283,7 +283,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                     fontWeight: 600,
                     color: grossColor,
                   }}>
-                    {isDNF ? '—' : formatScore(player.scoreToPar)}
+                    {formatScore(player.scoreToPar)}
                   </span>
                 </div>
 
@@ -291,11 +291,11 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                   fontFamily: 'DM Mono, monospace',
                   fontSize: 12,
                   fontWeight: 600,
-                  color: isDNF ? 'var(--text-muted)' : player.thru === 18 ? 'var(--green)' : 'var(--text-dim)',
+                  color: player.thru === 18 ? 'var(--green)' : 'var(--text-dim)',
                   textAlign: 'center',
                   letterSpacing: '0.04em',
                 }}>
-                  {isDNF ? 'DNF' : player.thru === 18 ? 'F' : player.thru || '—'}
+                  {player.thru === 18 ? 'F' : player.thru || '—'}
                 </span>
               </div>
 
