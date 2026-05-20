@@ -196,9 +196,10 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
 
       <div className="quadrant-scroll" style={{ overflowY: 'auto', flex: 1 }}>
         {net.map((player, i) => {
-          const isLeader = i === 0;
-          const scoreColor = getScoreColor(player.netScoreToPar);
-          const grossColor = getScoreColor(player.scoreToPar);
+          const isDNF = player.state === 'DNF';
+          const isLeader = i === 0 && !isDNF;
+          const scoreColor = getScoreColor(isDNF ? null : player.netScoreToPar);
+          const grossColor = getScoreColor(isDNF ? null : player.scoreToPar);
 
           return (
             <div
@@ -227,7 +228,17 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                 gap: 8,
                 alignItems: 'center',
               }}>
-                <RankBadge rank={player.rank} />
+                {isDNF ? (
+                  <span style={{
+                    fontFamily: 'DM Mono, monospace',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.08em',
+                  }}>DNF</span>
+                ) : (
+                  <RankBadge rank={player.rank} />
+                )}
 
                 <div style={{ overflow: 'hidden' }}>
                   <div style={{
@@ -258,7 +269,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                     textShadow: player.netScoreToPar !== null && player.netScoreToPar < 0
                       ? `0 0 12px ${scoreColor}66` : 'none',
                   }}>
-                    {formatScore(player.netScoreToPar)}
+                    {isDNF ? '—' : formatScore(player.netScoreToPar)}
                   </span>
                 </div>
 
@@ -272,7 +283,7 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                     fontWeight: 600,
                     color: grossColor,
                   }}>
-                    {formatScore(player.scoreToPar)}
+                    {isDNF ? '—' : formatScore(player.scoreToPar)}
                   </span>
                 </div>
 
@@ -280,11 +291,11 @@ function LeaderboardQuadrant({ net }: { gross: Player[]; net: Player[] }) {
                   fontFamily: 'DM Mono, monospace',
                   fontSize: 12,
                   fontWeight: 600,
-                  color: player.thru === 18 ? 'var(--green)' : 'var(--text-dim)',
+                  color: isDNF ? 'var(--text-muted)' : player.thru === 18 ? 'var(--green)' : 'var(--text-dim)',
                   textAlign: 'center',
                   letterSpacing: '0.04em',
                 }}>
-                  {player.thru === 18 ? 'F' : player.thru || '—'}
+                  {isDNF ? 'DNF' : player.thru === 18 ? 'F' : player.thru || '—'}
                 </span>
               </div>
 
