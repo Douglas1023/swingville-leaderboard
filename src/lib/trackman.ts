@@ -275,14 +275,18 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       rawDistance: item.score?.distanceToPin ?? 0,
     }));
 
-    const longestDrive: LongestDriveEntry[] = ldItems.map((item) => ({
-      rank: item.score?.pos ?? 0,
-      name: item.playername ?? 'Unknown',
-      hole: ldHoles[0] ?? '?',
-      distance: Math.round(item.score?.driveDistance ?? 0).toString(),
-      distanceUnit: 'yds',
-      rawDistance: item.score?.driveDistance ?? 0,
-    }));
+    const longestDrive: LongestDriveEntry[] = ldItems.map((item) => {
+      const distMeters = item.score?.driveDistance ?? 0;
+      const distYards = distMeters * 1.09361;
+      return {
+        rank: item.score?.pos ?? 0,
+        name: item.playername ?? 'Unknown',
+        hole: ldHoles[0] ?? '?',
+        distance: Math.round(distYards * 10) / 10 + '',
+        distanceUnit: 'yds',
+        rawDistance: distYards,
+      };
+    });
 
     console.log(`[Trackman] Live data: ${netLeaderboard.length} players, ${closestToPin.length} CTP, ${longestDrive.length} LD from ${courseName}`);
 
