@@ -589,7 +589,7 @@ export default function Dashboard() {
           <img
             src={sponsorLogoUrl}
             alt={sponsorName}
-            style={{ height: 36, width: 'auto', display: 'block' }}
+            style={{ height: 72, width: 'auto', display: 'block' }}
           />
         </div>
 
