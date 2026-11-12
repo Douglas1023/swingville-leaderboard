@@ -68,7 +68,8 @@ export async function saveConfig(
         addRandomSuffix: false,
         allowOverwrite: true,
       });
-      logoUrl = url;
+      // Same blob path is overwritten each time, so bust browser/CDN caches
+      logoUrl = `${url.split('?')[0]}?v=${Date.now()}`;
 
       // Delete any old logo files with a different extension
       const { blobs: oldLogos } = await list({ prefix: 'swingville/sponsor-logo' });
@@ -92,7 +93,7 @@ export async function saveConfig(
       const ext = logoFile.name.split('.').pop() || 'webp';
       const dest = path.join(process.cwd(), 'public', `sponsor-logo.${ext}`);
       await fs.writeFile(dest, Buffer.from(await logoFile.arrayBuffer()));
-      logoUrl = `/sponsor-logo.${ext}`;
+      logoUrl = `/sponsor-logo.${ext}?v=${Date.now()}`;
     }
 
     const updated = { ...config, sponsorLogoUrl: logoUrl };
